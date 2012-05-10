@@ -2,7 +2,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h> // For Resizing
 #include <assert.h> 
-#include <unistd.h> 
 
 #define NIL (0)
 
@@ -11,21 +10,23 @@ main() {
 	Display *dpy = XOpenDisplay(NIL); 
 	assert(dpy); 
 
-	//Create Root Window
-	Window rootWindow = XCreateWindow(
-		dpy, DefaultRootWindow(dpy), // X and Parent
-		0, 0, // X and Ypointer
-		200, 100, 0, //Width, Height, Border
-		CopyFromParent, CopyFromParent, CopyFromParent, // Depth, Class, Visual
-		NIL, 0 //Mask, Attributes
-	);
-	
-
 	//Hints
 	XSizeHints *hints;
-	XSetNormalHints(dpy, rootWindow, hints);
+	XSetNormalHints(dpy, DefaultRootWindow(dpy), hints);
 
-	XMapWindow(dpy, rootWindow);
+
+	//Mouse Event
+	XButtonEvent mouse;
+	XEvent event;
+
+
+	// Loop X Events
+	mouse.subwindow = None;
+	for (;;) {
+		XNextEvent(dpy, &event);
+	}
+
+	//Cleanup	
+	XMapWindow(dpy, DefaultRootWindow(dpy));
 	XFlush(dpy);
-	sleep(10);
 }
