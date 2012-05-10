@@ -1,25 +1,17 @@
 // mies-wm
 #include <xcb/xcb.h>
-#include <assert.h> 
 
 #define NIL (0)
 
 main() {
-	int screen;
+	//Connection, Screen, and Event
 	xcb_connection_t *xcbConnection;
 	xcb_generic_event_t *event;
 
-	xcbConnection = xcb_connect(
-		NIL,
-		&screen
-	);   
+	//Connect and Setup Screen and Grab Btn
+	xcbConnection = xcb_connect(NIL, NIL);
 
 	for (;;) {
 		event = xcb_wait_for_event(xcbConnection);
 	}
-
-	xcb_flush(xcbConnection);
-	xcb_disconnect(xcbConnection);
-
-	return 0;
 }
