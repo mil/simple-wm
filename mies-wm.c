@@ -5,14 +5,6 @@
 
 #define NIL (0)
 
-/*
-void mouseClick(XEvent * e, XButtonEvent * m, Display * d) {
-	XEvent event = * e;
-	XButtonEvent mouse = * m;
-	Display display = * d;
-}
-*/
-
 main() {
 	//Create and Assert Display
 	Display *dpy = XOpenDisplay(NIL); 
@@ -20,43 +12,36 @@ main() {
 
 	//Hints
 	XSizeHints *hints;
-	XSetNormalHints(dpy, DefaultRootWindow(dpy), hints);
+	XSetWMNormalHints(dpy, DefaultRootWindow(dpy), hints);
 
 	//Mouse Event
 	XButtonEvent mouse;
 	XEvent event;
 
+	//Grab Key
+    XGrabKey(dpy, XKeysymToKeycode(
+		dpy, XStringToKeysym("XK_ESCAPE")), Mod1Mask,
+		DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync
+	);
+
 
 	// Loop X Events
 	mouse.subwindow = None;
-
-	/* main event loop */
 	for (;;) {
-
 		XNextEvent(dpy, &event); 
 		
 		if (event.type == MotionNotify) {
-			//mouseClick( & event, & mouse, & dpy);
-
-			switch(mouse.button) {
-				case 1:
-					XMoveResizeWindow(
-							dpy, mouse.subwindow, 
-							event.xbutton.x_root - mouse.x_root,
-							event.xbutton.y_root - mouse.y_root,
-							500,500
-					);
-					break;
-				case 2:
-					break;
-				case 3:
-					break;
-			}
-
-
 		} else if (event.type == ButtonPress) {
 		} else if (event.type == KeyPress) {
 		}
+	
+		/*
+		if (mouse.subwindow) {
+			XCirculateSubwindowsDown(dpy, mouse.subwindow);
+		}
+		*/
+		XSync(dpy, True);
+		mouse.subwindow = None;
 	}
 
 	//Cleanup	
