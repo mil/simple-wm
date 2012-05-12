@@ -5,39 +5,33 @@
 
 #define NIL (0)
 
-//Screen and Display
-int 			screen;
-int				activeScreen;
-Display			*display;
-
-//Windows
-Window 			window; 
-
-//Event
-XEvent			event;
-
+int screen;
+int	activeScreen;
+Display	*display;
+Window window; 
+XEvent event;
+Cursor cursor;
 
 //Display message 
 void displayMessage() {
 	XDrawString(
-			display, 
-			window, 
-			DefaultGC(display, activeScreen), 
-			50, 50, 
-			"mmm wm", strlen("mmm wm")
-	);	
-
+		display,
+		window,
+		DefaultGC(display, activeScreen),
+		50, 50,
+		"mmm wm", strlen("mmm wm")
+	);
 }
 
 //Creates a window
 int createWindow() {
 	window = XCreateSimpleWindow(
-			 display, 
-			 RootWindow(display, activeScreen), 
-			 10, 10, 
-			 100, 200, 1,
-			 BlackPixel(display, activeScreen), 
-			 WhitePixel(display, activeScreen)
+		display, 
+		RootWindow(display, activeScreen), 
+		10, 10, 
+		100, 200, 1,
+		BlackPixel(display, activeScreen), 
+		WhitePixel(display, activeScreen)
 	);	
     XMapWindow(display, window);
 
@@ -48,12 +42,19 @@ int createWindow() {
 void setBorder(Window *window) {
 	XSetWindowBorderWidth(display,*window,1);
 	XSetWindowBorder(display, *window, 20);
+}
 
+void setCursor(Window *window, int cursor) {
+	//Create the Cursor and then Define Cursor for Window
+	cursor = XCreateFontCursor(display, cursor);
+	XDefineCursor(display, *window, cursor);
 }
 
 void setupEvents(Window *window) {
-    XSelectInput(display, *window, 
-			KeyPressMask
+    XSelectInput(display, *window,
+		KeyPressMask ||
+		ButtonPressMask ||
+		PointerMotionMask
 	);
 }
 
@@ -69,13 +70,18 @@ int main() {
 	window = createWindow();
 	setupEvents(&window);
 
+	//Set Cursor for window only to XC_gumby
+	setCursor(&window, 56);
 
 	for (;;) {
 		XNextEvent(display, &event);
+		if (event.type == KeyPress) {
+			displayMessage(&window);	
+		} else if (event.type == ButtonPress) {	
+			setBorder(&window);
+		} else {	
 
-		displayMessage(&window);	
-		setBorder(&window);
+		}
 	}
-
 	return 0;
 }
