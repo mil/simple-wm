@@ -8,7 +8,7 @@
 int screen;
 int	activeScreen;
 Display	*display;
-Window window; 
+Window window, root; 
 XEvent event;
 Cursor cursor;
 
@@ -38,18 +38,20 @@ int createWindow() {
 	return window;
 }
 
-//Centers the pointer in the middle of the current window
-void setBorder(Window *window) {
-	XSetWindowBorderWidth(display,*window,1);
+//Expands the border to be 20 pixels
+void expandBorder(Window *window) {
+	XSetWindowBorderWidth(display,*window,20);
 	XSetWindowBorder(display, *window, 20);
 }
 
+//Sets given window with cursor
 void setCursor(Window *window, int cursor) {
 	//Create the Cursor and then Define Cursor for Window
 	cursor = XCreateFontCursor(display, cursor);
 	XDefineCursor(display, *window, cursor);
 }
 
+//Sets up events for given window
 void setupEvents(Window *window) {
     XSelectInput(display, *window,
 		KeyPressMask ||
@@ -58,17 +60,24 @@ void setupEvents(Window *window) {
 	);
 }
 
+//Raises window above all
+void raiseWindow(Window *window){
+	XRaiseWindow(display, *window);
+}
+
 int main() {
 	//Open Display and Assert
 	display = XOpenDisplay(NIL);
 	assert(display);
+
+	root = RootWindow(display, activeScreen);
 
 	//Get Active Screen
 	activeScreen = DefaultScreen(display);
 
 	//Create a Window and Setup Events for the Window
 	window = createWindow();
-	setupEvents(&window);
+	setupEvents(&root);
 
 	//Set Cursor for window only to XC_gumby
 	setCursor(&window, 56);
@@ -76,9 +85,10 @@ int main() {
 	for (;;) {
 		XNextEvent(display, &event);
 		if (event.type == KeyPress) {
+			raiseWindow(&window);
 			displayMessage(&window);	
+			expandBorder(&window);
 		} else if (event.type == ButtonPress) {	
-			setBorder(&window);
 		} else {	
 
 		}
