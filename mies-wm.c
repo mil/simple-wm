@@ -12,6 +12,7 @@ Window window, root;
 XEvent event;
 Cursor cursor;
 
+
 //Display message 
 void displayMessage(Window *window, char message[]) {
 	XDrawString(
@@ -23,7 +24,7 @@ void displayMessage(Window *window, char message[]) {
 	);
 }
 
-//Creates a window
+//Creates and maps window
 int createWindow() {
 	window = XCreateSimpleWindow(
 		display, 
@@ -79,24 +80,10 @@ void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
 }
 
-int main() {
-	//Open Display and Assert
-	display = XOpenDisplay(NIL);
-	assert(display);
 
-	root = RootWindow(display, activeScreen);
-
-	//Get Active Screen
-	activeScreen = DefaultScreen(display);
-
-	//Create a Window and Setup Events for the Window
-	window = createWindow();
-	setupEvents(&root);
-
-	//Set Cursor for window only to XC_gumby
-	setCursor(&window, 56);
-
+void eventLoop() {
 	for (;;) {
+		//Waits for the Next Event (Blocking)
 		XNextEvent(display, &event);
 
 		//User Input Events
@@ -111,7 +98,7 @@ int main() {
 		} else if (event.type == ButtonPress) {	
 		}
 
-
+		//Window Events
 		if (event.type == EnterNotify) {
 			displayMessage(&window, "EnterNotify");
 		} else if (event.type == LeaveNotify) {
@@ -120,8 +107,31 @@ int main() {
 			displayMessage(&window, "MotionNotify");
 		} else {
 			displayMessage(&window, "not good");
-		}
-		
+		}		
+
 	}
+}
+
+
+int main() {
+	//Open Display and Assert
+	display = XOpenDisplay(NIL);
+	assert(display);
+
+	//Setup the Root Window, Active Screen, and Events
+	root = RootWindow(display, activeScreen);
+	activeScreen = DefaultScreen(display);
+	setupEvents(&root);
+
+	//Create a Window and Setup Events for the Window
+	//Set Cursor for window only to XC_gumby
+	window = createWindow();
+	setCursor(&window, 56);
+
+	//Enter the Event Loop
+	eventLoop();
+
+	//If Event Loop Were to Break
+	XCloseDisplay(display);
 	return 0;
 }
