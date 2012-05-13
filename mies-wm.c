@@ -66,7 +66,11 @@ void setupEvents(Window *window) {
 		//For Pointer Entry / Exit
 		//Generates events: EnterNotify, LeaveNotify
 		EnterWindowMask ||
-		LeaveWindowMask
+		LeaveWindowMask ||
+
+		//Alerts of motion notify 
+		//ONLY within the window itself(start->end)
+		MotionNotify 
 	);
 }
 
@@ -109,9 +113,13 @@ int main() {
 
 
 		if (event.type == EnterNotify) {
-
+			displayMessage(&window, "EnterNotify");
 		} else if (event.type == LeaveNotify) {
-
+			displayMessage(&window, "LeaveNotify");
+		} else if (event.type == MotionNotify) {
+			displayMessage(&window, "MotionNotify");
+		} else {
+			displayMessage(&window, "not good");
 		}
 		
 	}
