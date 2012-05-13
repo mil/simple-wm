@@ -13,13 +13,13 @@ XEvent event;
 Cursor cursor;
 
 //Display message 
-void displayMessage() {
+void displayMessage(Window *window, char message[]) {
 	XDrawString(
 		display,
-		window,
+		*window,
 		DefaultGC(display, activeScreen),
 		50, 50,
-		"mmm wm", strlen("mmm wm")
+		message, strlen(message)
 	);
 }
 
@@ -51,12 +51,22 @@ void setCursor(Window *window, int cursor) {
 	XDefineCursor(display, *window, cursor);
 }
 
+//Just a test of Xwarppointer
+void warpPointer(Window *window) {
+	XWarpPointer(display, None, *window, 10, 10, 20, 0, 0,0);
+}
+
 //Sets up events for given window
 void setupEvents(Window *window) {
     XSelectInput(display, *window,
 		KeyPressMask ||
 		ButtonPressMask ||
-		PointerMotionMask
+		PointerMotionMask ||
+		
+		//For Pointer Entry / Exit
+		//Generates events: EnterNotify, LeaveNotify
+		EnterWindowMask ||
+		LeaveWindowMask
 	);
 }
 
@@ -84,14 +94,26 @@ int main() {
 
 	for (;;) {
 		XNextEvent(display, &event);
+
+		//User Input Events
 		if (event.type == KeyPress) {
 			raiseWindow(&window);
-			displayMessage(&window);	
+
+			char message[] = "mmmm wm";
+			displayMessage(&window, &message[0]);	
+
 			expandBorder(&window);
+			warpPointer(&window);
 		} else if (event.type == ButtonPress) {	
-		} else {	
+		}
+
+
+		if (event.type == EnterNotify) {
+
+		} else if (event.type == LeaveNotify) {
 
 		}
+		
 	}
 	return 0;
 }
