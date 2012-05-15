@@ -79,36 +79,59 @@ void setupEvents(Window *window) {
 void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
 }
+/*
+void killWindow(Window *window) {
+	XEvent kill;
+	kill.type =  ClientMessage;
+	kill.xclient = *window;
 
+	XSendEvent(display, *window, False, NoEventMask, &kill);
+}
+*/
 
-void eventLoop() {
-	for (;;) {
-		//Waits for the Next Event (Blocking)
-		XNextEvent(display, &event);
+void handleEvent() {
+	//Waits for the Next Event (Blocking)
+	XNextEvent(display, &event);
 
-		//User Input Events
-		if (event.type == KeyPress) {
+	switch (event.type) {
+
+		case KeyPress:
 			raiseWindow(&window);
-
-			char message[] = "mmmm wm";
-			displayMessage(&window, &message[0]);	
+			displayMessage(&window, "mmmm wm");	
 
 			expandBorder(&window);
 			warpPointer(&window);
-		} else if (event.type == ButtonPress) {	
-		}
+		break;
 
-		//Window Events
-		if (event.type == EnterNotify) {
+		case ButtonPress:
+		break;
+
+
+		case EnterNotify:
 			displayMessage(&window, "EnterNotify");
-		} else if (event.type == LeaveNotify) {
-			displayMessage(&window, "LeaveNotify");
-		} else if (event.type == MotionNotify) {
-			displayMessage(&window, "MotionNotify");
-		} else {
-			displayMessage(&window, "not good");
-		}		
+			setCursor(&window, 52);
+		break;
 
+		case LeaveNotify:
+			displayMessage(&window, "LeaveNotify");
+			setCursor(&window, 52);
+		break;
+
+		case MotionNotify:
+			displayMessage(&window, "MotionNotify");
+		break;
+
+		case FocusIn:
+			displayMessage(&window, "FocusIn");
+		break;
+
+
+		case FocusOut:
+			displayMessage(&window, "FocusOut");
+		break;
+
+		default:
+		break;
 	}
 }
 
@@ -128,8 +151,10 @@ int main() {
 	window = createWindow();
 	setCursor(&window, 56);
 
-	//Enter the Event Loop
-	eventLoop();
+	while (True) {
+		//Enter the Event Loop
+		handleEvent();
+	}
 
 	//If Event Loop Were to Break
 	XCloseDisplay(display);
