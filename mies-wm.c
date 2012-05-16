@@ -8,7 +8,7 @@
 int screen;
 int	activeScreen;
 Display	*display;
-Window window, root; 
+Window statusWindow, activeWindow, root; 
 XEvent event;
 Cursor cursor;
 
@@ -26,8 +26,8 @@ void displayMessage(Window *window, char message[]) {
 }
 
 //Creates and maps window
-int createWindow() {
-	window = XCreateSimpleWindow(
+int createStatusWindow() {
+	statusWindow = XCreateSimpleWindow(
 		display, 
 		RootWindow(display, activeScreen), 
 		500, 500, 
@@ -35,9 +35,9 @@ int createWindow() {
 		BlackPixel(display, activeScreen), 
 		WhitePixel(display, activeScreen)
 	);	
-    XMapWindow(display, window);
+	XMapWindow(display, statusWindow);
 
-	return window;
+	return statusWindow;
 }
 
 //Expands the border to be 20 pixels
@@ -69,12 +69,15 @@ void centerPointer(Window *window) {
 void setupEvents() {
 	XGrabButton(
 		display, 1, Mod1Mask, root, True, 
-		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+		ButtonPressMask | ButtonReleaseMask | PointerMotionMask, 
 		GrabModeAsync, GrabModeAsync, None, None
 	);
 
 	//Gimme Map Requests
-	XSelectInput(display, root, SubstructureNotifyMask | SubstructureRedirectMask
+	XSelectInput(display, root, 
+		SubstructureNotifyMask		| 
+		SubstructureRedirectMask	| 
+		KeyPressMask
 	);
 }
 
@@ -87,16 +90,17 @@ void mapWindow(Window *window) {
 	XMapWindow(display, *window);
 	applyBorder(window);
 	centerPointer(window);
+	XSelectInput(display, *window, FocusChangeMask);
 }
 /*
-void killWindow(Window *window) {
-	XEvent kill;
-	kill.type =  ClientMessage;
-	kill.xclient = *window;
+   void killWindow(Window *window) {
+   XEvent kill;
+   kill.type =  ClientMessage;
+   kill.xclient = *window;
 
-	XSendEvent(display, *window, False, NoEventMask, &kill);
-}
-*/
+   XSendEvent(display, *window, False, NoEventMask, &kill);
+   }
+   */
 
 void handleEvent() {
 	//Waits for the Next Event (Blocking)
@@ -104,28 +108,37 @@ void handleEvent() {
 
 
 	switch (event.type) {
-			//raiseWindow(&window);
-			//warpPointer(&window);
-			//setCursor(&window, 52);
-			//expandBorder(&window);
-			//warpPointer(&window);
+		//raiseWindow(&window);
+		//warpPointer(&window);
+		//setCursor(&window, 52);
+		//expandBorder(&window);
+		//warpPointer(&window);
 		case KeyPress:
-			displayMessage(&window, "Key press");	
-		break;
+			displayMessage(&statusWindow, "Key press");	
+
+			break;
 
 		case CreateNotify:
-			displayMessage(&window, "Create Notify");
-		break;
+			displayMessage(&statusWindow, "Create Notify");
+			break;
 
 		case MapRequest:
-			displayMessage(&window, "Map Request");
+			displayMessage(&statusWindow, "Map Request");
 			XMapRequestEvent mapRequest = event.xmaprequest;
 			mapWindow(&mapRequest.window);
-		break;
+			break;
+
+		case FocusIn:
+			displayMessage(&statusWindow, "Focus In");
+			break;
+
+		case FocusOut:
+			displayMessage(&statusWindow, "Focus Out");
+			break;
 
 		default:
-		//	displayMessage(&window, "Unknown Event");
-		break;
+			//	displayMessage(&window, "Unknown Event");
+			break;
 	}
 }
 
@@ -142,8 +155,8 @@ int main() {
 
 	//Create a Window and Setup Events for the Window
 	//Set Cursor for window only to XC_gumby
-	window = createWindow();
-	setCursor(&window, 56);
+	statusWindow = createStatusWindow();
+	setCursor(&statusWindow, 56);
 
 	while (True) {
 		//Enter the Event Loop
