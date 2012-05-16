@@ -41,7 +41,7 @@ int createWindow() {
 }
 
 //Expands the border to be 20 pixels
-void expandBorder(Window *window) {
+void applyBorder(Window *window) {
 	XSetWindowBorderWidth(display,*window,20);
 	XSetWindowBorder(display, *window, 20);
 }
@@ -53,13 +53,20 @@ void setCursor(Window *window, int cursor) {
 	XDefineCursor(display, *window, cursor);
 }
 
-//Just a test of Xwarppointer
-void warpPointer(Window *window) {
-	XWarpPointer(display, None, *window, 10, 10, 20, 0, 0,0);
+void centerPointer(Window *window) {
+	//Get Window Attributes
+	XWindowAttributes windowAttributes;
+	XGetWindowAttributes(display, *window, &windowAttributes);
+
+	int centerX = windowAttributes.width / 2,
+		centerY = windowAttributes.height / 2;
+
+	//Warp to Center
+	XWarpPointer(display, None, *window, 0, 0, 0, 0, centerX,centerY);
 }
 
 //Sets up events for given window
-void setupEvents(Window *window) {
+void setupEvents() {
 	XGrabButton(
 		display, 1, Mod1Mask, root, True, 
 		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
@@ -67,9 +74,7 @@ void setupEvents(Window *window) {
 	);
 
 	//Gimme Map Requests
-	XSelectInput(display, *window,
-		SubstructureNotifyMask |
-		SubstructureRedirectMask
+	XSelectInput(display, root, SubstructureNotifyMask | SubstructureRedirectMask
 	);
 }
 
@@ -80,6 +85,8 @@ void raiseWindow(Window *window){
 
 void mapWindow(Window *window) {
 	XMapWindow(display, *window);
+	applyBorder(window);
+	centerPointer(window);
 }
 /*
 void killWindow(Window *window) {
