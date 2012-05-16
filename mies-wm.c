@@ -15,6 +15,7 @@ Cursor cursor;
 
 //Display message 
 void displayMessage(Window *window, char message[]) {
+	XClearWindow(display, *window);
 	XDrawString(
 		display,
 		*window,
@@ -29,7 +30,7 @@ int createWindow() {
 	window = XCreateSimpleWindow(
 		display, 
 		RootWindow(display, activeScreen), 
-		10, 10, 
+		500, 500, 
 		100, 200, 1,
 		BlackPixel(display, activeScreen), 
 		WhitePixel(display, activeScreen)
@@ -59,25 +60,26 @@ void warpPointer(Window *window) {
 
 //Sets up events for given window
 void setupEvents(Window *window) {
-    XSelectInput(display, *window,
-		KeyPressMask ||
-		ButtonPressMask ||
-		PointerMotionMask ||
-		
-		//For Pointer Entry / Exit
-		//Generates events: EnterNotify, LeaveNotify
-		EnterWindowMask ||
-		LeaveWindowMask ||
+	XGrabButton(
+		display, 1, Mod1Mask, root, True, 
+		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+		GrabModeAsync, GrabModeAsync, None, None
+	);
 
-		//Alerts of motion notify 
-		//ONLY within the window itself(start->end)
-		MotionNotify 
+	//Gimme Map Requests
+	XSelectInput(display, *window,
+		SubstructureNotifyMask |
+		SubstructureRedirectMask
 	);
 }
 
 //Raises window above all
 void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
+}
+
+void mapWindow(Window *window) {
+	XMapWindow(display, *window);
 }
 /*
 void killWindow(Window *window) {
@@ -93,44 +95,29 @@ void handleEvent() {
 	//Waits for the Next Event (Blocking)
 	XNextEvent(display, &event);
 
+
 	switch (event.type) {
-
+			//raiseWindow(&window);
+			//warpPointer(&window);
+			//setCursor(&window, 52);
+			//expandBorder(&window);
+			//warpPointer(&window);
 		case KeyPress:
-			raiseWindow(&window);
-			displayMessage(&window, "mmmm wm");	
-
-			expandBorder(&window);
-			warpPointer(&window);
+			displayMessage(&window, "Key press");	
 		break;
 
-		case ButtonPress:
+		case CreateNotify:
+			displayMessage(&window, "Create Notify");
 		break;
 
-
-		case EnterNotify:
-			displayMessage(&window, "EnterNotify");
-			setCursor(&window, 52);
-		break;
-
-		case LeaveNotify:
-			displayMessage(&window, "LeaveNotify");
-			setCursor(&window, 52);
-		break;
-
-		case MotionNotify:
-			displayMessage(&window, "MotionNotify");
-		break;
-
-		case FocusIn:
-			displayMessage(&window, "FocusIn");
-		break;
-
-
-		case FocusOut:
-			displayMessage(&window, "FocusOut");
+		case MapRequest:
+			displayMessage(&window, "Map Request");
+			XMapRequestEvent mapRequest = event.xmaprequest;
+			mapWindow(&mapRequest.window);
 		break;
 
 		default:
+		//	displayMessage(&window, "Unknown Event");
 		break;
 	}
 }
