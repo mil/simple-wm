@@ -78,6 +78,7 @@ void setupEvents() {
 
 	//Gimme Some Events 
 	XSelectInput(display, root, 
+		FocusChangeMask				|
 		SubstructureNotifyMask		| 
 		SubstructureRedirectMask	| 
 		KeyPressMask				|
@@ -154,7 +155,17 @@ void handleEvent() {
 			break;
 
 		case ButtonPress:
-			displayMessage(&statusWindow, "button press");
+
+			//Left Click -- Click to Focus
+			if (event.xbutton.button == 1) {
+				if (event.xbutton.subwindow) {
+					displayMessage(&statusWindow, "Clicking to Focus");
+					raiseWindow(&event.xbutton.subwindow);
+				} else {
+					//Click first button on root window
+				}
+			}
+			
 			break;
 
 		case CreateNotify:
@@ -165,6 +176,7 @@ void handleEvent() {
 			displayMessage(&statusWindow, "Map Request");
 			XMapRequestEvent mapRequest = event.xmaprequest;
 			mapWindow(&mapRequest.window);
+			raiseWindow(&mapRequest.window);
 			break;
 
 		case FocusIn:
