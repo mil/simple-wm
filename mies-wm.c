@@ -90,8 +90,14 @@ void mapWindow(Window *window) {
 	XMapWindow(display, *window);
 	applyBorder(window);
 	centerPointer(window);
-	XSelectInput(display, *window, FocusChangeMask);
+	XSelectInput(display, *window, FocusChangeMask | KeyPressMask);
 }
+
+/*void moveWindow(Window *window, int xDifference, int yDifference) {
+	XMoveResizeWindow(display,
+}
+*/
+
 /*
    void killWindow(Window *window) {
    XEvent kill;
@@ -106,15 +112,34 @@ void handleEvent() {
 	//Waits for the Next Event (Blocking)
 	XNextEvent(display, &event);
 
-
+	XWindowAttributes attributes;
+	int moveX = 0,
+		moveY = 0;
 	switch (event.type) {
 		//raiseWindow(&window);
 		//warpPointer(&window);
 		//setCursor(&window, 52);
 		//expandBorder(&window);
 		//warpPointer(&window);
-		case KeyPress:
-			displayMessage(&statusWindow, "Key press");	
+		case KeyPress:	
+
+			switch (event.xkey.keycode) {
+				case 113:
+					moveX = -10; //left
+					break;
+				case 114:
+					moveX = 10; //right
+					break;
+				case 111:
+					moveY = -10; //up
+					break;
+				case 116:
+					moveY = 10; //down
+					break;
+			}
+
+			XGetWindowAttributes(display, statusWindow, &attributes);
+			XMoveWindow(display, statusWindow, attributes.x + moveX, attributes.y + moveY);
 
 			break;
 
@@ -130,6 +155,8 @@ void handleEvent() {
 
 		case FocusIn:
 			displayMessage(&statusWindow, "Focus In");
+			activeWindow = event.xfocus.window;
+
 			break;
 
 		case FocusOut:
