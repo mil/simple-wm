@@ -77,7 +77,8 @@ void setupEvents() {
 	XSelectInput(display, root, 
 		SubstructureNotifyMask		| 
 		SubstructureRedirectMask	| 
-		KeyPressMask
+		KeyPressMask				|
+		PropertyChangeMask
 	);
 }
 
@@ -122,25 +123,27 @@ void handleEvent() {
 		//expandBorder(&window);
 		//warpPointer(&window);
 		case KeyPress:	
+			if (activeWindow != NIL) {
 
-			switch (event.xkey.keycode) {
-				case 113:
-					moveX = -10; //left
-					break;
-				case 114:
-					moveX = 10; //right
-					break;
-				case 111:
-					moveY = -10; //up
-					break;
-				case 116:
-					moveY = 10; //down
-					break;
+				switch (event.xkey.keycode) {
+					case 113:
+						moveX = -10; //left
+						break;
+					case 114:
+						moveX = 10; //right
+						break;
+					case 111:
+						moveY = -10; //up
+						break;
+					case 116:
+						moveY = 10; //down
+						break;
+				}
+
+				XGetWindowAttributes(display, activeWindow, &attributes);
+				XMoveWindow(display, activeWindow, attributes.x + moveX, attributes.y + moveY);
+
 			}
-
-			XGetWindowAttributes(display, statusWindow, &attributes);
-			XMoveWindow(display, statusWindow, attributes.x + moveX, attributes.y + moveY);
-
 			break;
 
 		case CreateNotify:
@@ -161,6 +164,10 @@ void handleEvent() {
 
 		case FocusOut:
 			displayMessage(&statusWindow, "Focus Out");
+			break;
+
+		case PropertyNotify:
+			displayMessage(&statusWindow, "property ntoify");
 			break;
 
 		default:
