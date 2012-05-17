@@ -68,17 +68,21 @@ void centerPointer(Window *window) {
 //Sets up events for given window
 void setupEvents() {
 	XGrabButton(
-		display, 1, Mod1Mask, root, True, 
-		ButtonPressMask | ButtonReleaseMask | PointerMotionMask, 
+		//Display, Button, Modifiers
+		display, AnyButton, AnyModifier, 
+		//Window, OwnerE?, EventMask
+		root, True, ButtonPressMask | ButtonReleaseMask | PointerMotionMask, 
+		//PointerMode, KBMode, Confine, Cursor
 		GrabModeAsync, GrabModeAsync, None, None
 	);
 
-	//Gimme Map Requests
+	//Gimme Some Events 
 	XSelectInput(display, root, 
 		SubstructureNotifyMask		| 
 		SubstructureRedirectMask	| 
 		KeyPressMask				|
-		PropertyChangeMask
+		PropertyChangeMask			|
+		ButtonPressMask				//Button Press on Root
 	);
 }
 
@@ -91,7 +95,10 @@ void mapWindow(Window *window) {
 	XMapWindow(display, *window);
 	applyBorder(window);
 	centerPointer(window);
-	XSelectInput(display, *window, FocusChangeMask | KeyPressMask);
+	XSelectInput(display, *window, 
+		FocusChangeMask | KeyPressMask | 
+		ButtonPressMask
+	);
 }
 
 /*void moveWindow(Window *window, int xDifference, int yDifference) {
@@ -144,6 +151,10 @@ void handleEvent() {
 				XMoveWindow(display, activeWindow, attributes.x + moveX, attributes.y + moveY);
 
 			}
+			break;
+
+		case ButtonPress:
+			displayMessage(&statusWindow, "button press");
 			break;
 
 		case CreateNotify:
