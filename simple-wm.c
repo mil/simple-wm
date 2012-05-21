@@ -91,6 +91,7 @@ void raiseWindow(Window *window){
 }
 
 void mapWindow(Window *window) {
+
 	XMapWindow(display, *window);
 	applyBorder(window);
 	centerPointer(window);
@@ -99,13 +100,14 @@ void mapWindow(Window *window) {
 		ButtonPressMask
 	);
 }
-// When a key is press
-void keyPress(int keycode) {
+
+//Handles Keypress, takes in modifier and keycode
+void keyPress(int modifier, int keycode) {
 
 	XWindowAttributes attributes;
 	int moveX = 0, moveY = 0;
 
-	if (activeWindow != NIL) {
+	if (activeWindow != NIL && modifier == (Mod1Mask||Mod2Mask||Mod3Mask||Mod4Mask)) {
 		switch (keycode) {
 			case 113:
 				moveX = -10; //left
@@ -129,24 +131,29 @@ void keyPress(int keycode) {
 	}
 }
 
+void buttonPress(int button, Window *window) {
+	//Left Click -- Click to Focus
+	if (button == 1) {
+		if (*window) {
+			displayMessage(&statusWindow, "Clicking to Focus");
+			raiseWindow(window); //Or &*, just passes the pointer
+		} else {
+			//Click first button on root window
+		}
+	}
+
+}
+
 void handleEvent() {
 	//Waits for the Next Event (Blocking)
 	XNextEvent(display, &event);
 
 	switch (event.type) {
-		case KeyPress: keyPress(event.xkey.keycode); break;
+		case KeyPress: 
+			keyPress(event.xkey.state, event.xkey.keycode); 
+		break;
 		case ButtonPress:
-
-			//Left Click -- Click to Focus
-			if (event.xbutton.button == 1) {
-				if (event.xbutton.subwindow) {
-					displayMessage(&statusWindow, "Clicking to Focus");
-					raiseWindow(&event.xbutton.subwindow);
-				} else {
-					//Click first button on root window
-				}
-			}
-			
+			buttonPress(event.xbutton.button, &event.xbutton.subwindow);			
 			break;
 
 		case CreateNotify:
