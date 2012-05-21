@@ -78,18 +78,16 @@ void setupEvents() {
 
 	//Gimme Some Events 
 	XSelectInput(display, root, 
-		FocusChangeMask				|
-		SubstructureNotifyMask		| 
-		SubstructureRedirectMask	| 
-		KeyPressMask				|
-		PropertyChangeMask			|
-		ButtonPressMask				//Button Press on Root
+		FocusChangeMask | PropertyChangeMask |
+		SubstructureNotifyMask | SubstructureRedirectMask | 
+		KeyPressMask | ButtonPressMask
 	);
 }
 
-//Raises window above all
+//Raises Window, Focuses, Makes Window the Active Window
 void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
+	activeWindow = *window;
 }
 
 void mapWindow(Window *window) {
@@ -101,59 +99,42 @@ void mapWindow(Window *window) {
 		ButtonPressMask
 	);
 }
+// When a key is press
+void keyPress(int keycode) {
 
-/*void moveWindow(Window *window, int xDifference, int yDifference) {
-	XMoveResizeWindow(display,
+	XWindowAttributes attributes;
+	int moveX = 0, moveY = 0;
+
+	if (activeWindow != NIL) {
+		switch (keycode) {
+			case 113:
+				moveX = -10; //left
+				break;
+			case 114:
+				moveX = 10; //right
+				break;
+			case 111:
+				moveY = -10; //up
+				break;
+			case 116:
+				moveY = 10; //down
+				break;
+		}
+
+		XGetWindowAttributes(display, activeWindow, &attributes);
+		XMoveWindow(display, activeWindow, 
+				attributes.x + moveX, 
+				attributes.y + moveY
+		);
+	}
 }
-*/
-
-/*
-   void killWindow(Window *window) {
-   XEvent kill;
-   kill.type =  ClientMessage;
-   kill.xclient = *window;
-
-   XSendEvent(display, *window, False, NoEventMask, &kill);
-   }
-   */
 
 void handleEvent() {
 	//Waits for the Next Event (Blocking)
 	XNextEvent(display, &event);
 
-	XWindowAttributes attributes;
-	int moveX = 0,
-		moveY = 0;
 	switch (event.type) {
-		//raiseWindow(&window);
-		//warpPointer(&window);
-		//setCursor(&window, 52);
-		//expandBorder(&window);
-		//warpPointer(&window);
-		case KeyPress:	
-			if (activeWindow != NIL) {
-
-				switch (event.xkey.keycode) {
-					case 113:
-						moveX = -10; //left
-						break;
-					case 114:
-						moveX = 10; //right
-						break;
-					case 111:
-						moveY = -10; //up
-						break;
-					case 116:
-						moveY = 10; //down
-						break;
-				}
-
-				XGetWindowAttributes(display, activeWindow, &attributes);
-				XMoveWindow(display, activeWindow, attributes.x + moveX, attributes.y + moveY);
-
-			}
-			break;
-
+		case KeyPress: keyPress(event.xkey.keycode); break;
 		case ButtonPress:
 
 			//Left Click -- Click to Focus
@@ -181,7 +162,7 @@ void handleEvent() {
 
 		case FocusIn:
 			displayMessage(&statusWindow, "Focus In");
-			activeWindow = event.xfocus.window;
+			raiseWindow(&event.xfocus.window);
 
 			break;
 
