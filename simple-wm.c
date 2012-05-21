@@ -27,13 +27,18 @@ void displayMessage(Window *window, char message[]) {
 
 //Creates and maps window
 int createStatusWindow() {
+
+	int width = DisplayWidth(display, activeScreen);
+	int height = DisplayHeight(display, activeScreen);
+	int infoBoxHeight = 100;
+
 	statusWindow = XCreateSimpleWindow(
-		display, 
-		RootWindow(display, activeScreen), 
-		500, 500, 
-		100, 200, 1,
-		BlackPixel(display, activeScreen), 
-		WhitePixel(display, activeScreen)
+		display, RootWindow(display, activeScreen),  //Display, Parent
+		0, (height - infoBoxHeight), //X, Y
+		width, infoBoxHeight,  //Width, Height
+		1, //Border Width
+		BlackPixel(display, activeScreen), //Border
+		WhitePixel(display, activeScreen) //Background
 	);	
 	XMapWindow(display, statusWindow);
 
