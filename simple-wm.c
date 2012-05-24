@@ -12,6 +12,14 @@ Window statusWindow, activeWindow, root;
 XEvent event;
 Cursor cursor;
 
+//Resize Structure
+typedef struct {
+	Window				window;
+	XButtonEvent 		*button;
+	XWindowAttributes 	attributes;
+} PointerMotion;
+PointerMotion drag;
+
 
 //Display message 
 void displayMessage(Window *window, char message[]) {
@@ -20,7 +28,7 @@ void displayMessage(Window *window, char message[]) {
 		display,
 		*window,
 		DefaultGC(display, activeScreen),
-		50, 50,
+		15, 15,
 		message, strlen(message)
 	);
 }
@@ -30,7 +38,7 @@ int createStatusWindow() {
 
 	int width = DisplayWidth(display, activeScreen);
 	int height = DisplayHeight(display, activeScreen);
-	int infoBoxHeight = 100;
+	int infoBoxHeight = 20;
 
 	statusWindow = XCreateSimpleWindow(
 		display, RootWindow(display, activeScreen),  //Display, Parent
@@ -101,8 +109,7 @@ void mapWindow(Window *window) {
 	applyBorder(window);
 	centerPointer(window);
 	XSelectInput(display, *window, 
-		FocusChangeMask | KeyPressMask | 
-		ButtonPressMask
+		FocusChangeMask | KeyPressMask | ButtonPressMask 
 	);
 }
 
@@ -136,17 +143,39 @@ void keyPress(int modifier, int keycode) {
 	}
 }
 
-void buttonPress(int button, Window *window) {
+void buttonPress(int button, int x, int y, Window *window) {
 	//Left Click -- Click to Focus
 	if (button == 1) {
 		if (*window) {
-			displayMessage(&statusWindow, "Clicking to Focus");
+		//	displayMessage(&statusWindow, "Clicking to Focus");
 			raiseWindow(window); //Or &*, just passes the pointer
 		} else {
 			//Click first button on root window
 		}
 	}
 
+	if (*window && drag.button != None ) {
+		displayMessage(&statusWindow, "DRAGOR");
+
+		XMoveResizeWindow(
+				display, *window,
+				x + (x - drag.button -> x_root),
+				y + (y - drag.button -> y_root),
+				1,
+				1
+		);
+	}
+
+}
+
+//Stores Dragging Motion in drag struct
+void motionInWindow(Window *window, XButtonEvent *button) {
+
+	if (*window) {
+	drag.window = *window;
+	drag.button = button;
+	XGetWindowAttributes(display, *window, &drag.attributes);
+	}
 }
 
 void handleEvent() {
@@ -157,8 +186,19 @@ void handleEvent() {
 		case KeyPress: 
 			keyPress(event.xkey.state, event.xkey.keycode); 
 		break;
+
 		case ButtonPress:
-			buttonPress(event.xbutton.button, &event.xbutton.subwindow);			
+			buttonPress(
+					event.xbutton.button, 
+					event.xbutton.x_root, event.xbutton.y_root, 
+					&event.xbutton.subwindow
+			);			
+			break;
+
+		// Motion within a window
+		case MotionNotify:
+			motionInWindow(&event.xbutton.subwindow, &event.xbutton);
+			displayMessage(&statusWindow, "Motion Notify");
 			break;
 
 		case CreateNotify:
