@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <string.h>
 #include <X11/Xlib.h>
-
 #define NIL (0)
 
 int screen;
@@ -12,16 +11,12 @@ Window statusWindow, activeWindow, root;
 XEvent event;
 Cursor cursor;
 
-//Resize Structure
+//PointerMotion Struct Contains Original Button Event and Original Attributes
 typedef struct {
-	Window				window;
-	XButtonEvent 		*button;
-	XWindowAttributes 	attributes;
-	int x;
-	int y;
+	XButtonEvent       button;
+	XWindowAttributes  attributes;
 } PointerMotion;
 PointerMotion drag;
-
 
 /* ---------------------------
  * Status Window Related
@@ -58,8 +53,10 @@ void logMessage(char message[]) {
 /* ----------------------------------
  * Window Manipulation Initializaiton 
  * ---------------------------------- */
-//Sets up events for given window
 void setupEvents() {
+
+	drag.button.subwindow = None;
+
 	XGrabButton(
 			//Display, Button, Modifiers
 			display, AnyButton, AnyModifier, 
@@ -83,8 +80,8 @@ void setupEvents() {
  * Window Manipulation Related
  * --------------------------- */
 void applyBorder(Window *window) {
-	XSetWindowBorderWidth(display,*window,20);
-	XSetWindowBorder(display, *window, 20);
+	XSetWindowBorderWidth(display,*window,5);
+	XSetWindowBorder(display, *window, 5);
 }
 
 void setCursor(Window *window, int cursor) {
@@ -111,7 +108,6 @@ void raiseWindow(Window *window){
 }
 
 
-
 /* ---------------------------
  * Event Handlers
  * --------------------------- */
@@ -127,99 +123,86 @@ void hMapRequest(XEvent *event) {
 	applyBorder(&mapRequestWindow);
 	centerPointer(&mapRequestWindow);
 
-	/*applyBorder();
-		centerPointer(window);
-		XSelectInput(display, *window, 
-		FocusChangeMask | KeyPressMask | ButtonPressMask 
-		);
-		*/
+	//applyBorder();
+	//centerPointer(window)
+	XSelectInput(display, event -> xmaprequest.window, FocusChangeMask | KeyPressMask | ButtonPressMask );
 }
 
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
 
-	/*
-		 keyPress(event.xkey.state, event.xkey.keycode); 
+	if (activeWindow == NIL) { return; }
 
+	XWindowAttributes attributes;
+	int moveX = 0, moveY = 0;
 
-		 XWindowAttributes attributes;
-		 int moveX = 0, moveY = 0;
-
-		 if (activeWindow != NIL && modifier == (Mod1Mask||Mod2Mask||Mod3Mask||Mod4Mask)) {
-		 switch (keycode) {
-		 case 113:
-		 moveX = -10; //left
-		 break;
-		 case 114:
-		 moveX = 10; //right
-		 break;
-		 case 111:
-		 moveY = -10; //up
-		 break;
-		 case 116:
-		 moveY = 10; //down
-		 break;
-		 }
-
-		 XGetWindowAttributes(display, activeWindow, &attributes);
-		 XMoveWindow(display, activeWindow, 
-		 attributes.x + moveX, 
-		 attributes.y + moveY
-		 );
-		 }
-		 */
+	if (event -> xkey.state == ShiftMask) {
+		switch (event -> xkey.keycode) {
+			case 113:
+				moveX = -10; //left
+				break;
+			case 114:
+				moveX = 10; //right
+				break;
+			case 111:
+				moveY = -10; //up
+				break;
+			case 116:
+				moveY = 10; //down
+				break;
+		}
+		XGetWindowAttributes(display, activeWindow, &attributes);
+		XMoveWindow(
+				display,
+				activeWindow,
+				attributes.x + moveX,
+				attributes.y + moveY
+				);
+	}
 }
 
 void hButtonPress(XEvent *event) {
+	//Clicking on the Root Window
+	if ((*event).xbutton.subwindow == None) { return; }
 
-	//void buttonPress(int button, int type, int x, int y, Window *window) {
-	/*
-		 buttonPress(
-		 event.xbutton.button, 
-		 event.type,
-		 event.xbutton.x_root, event.xbutton.y_root, 
-		 &event.xbutton.subwindow
-		 );		
+	//Clicking on A Normal Window
+	switch (event -> xbutton.button) {
+		case 1:
+			logMessage("1st Button");
+			raiseWindow(&(event -> xbutton.subwindow));
 
-	//Left Click -- Click to Focus
-	if (button == 1) {
-	if (*window) {
-	//	logMessage(&statusWindow, "Clicking to Focus");
-	raiseWindow(window); //Or &*, just passes the pointer
-	} else {
-	//Click first button on root window
-	}
-	}
+			//Click to Move
+			XGetWindowAttributes(display, 
+					(*event).xbutton.subwindow, 
+					&(drag.attributes)
+					);
+			drag.button = (*event).xbutton;
 
-	if (*window && drag.button != None  && type == ButtonRelease ) {
-	logMessage(&statusWindow, "DRAGOR");
+			break;
 
-	if (button == 1) {
-	XMoveWindow(
-	display, *window,
-	(drag.attributes.x) + (drag.button -> x_root - x),
-	(drag.attributes.y) + (drag.button -> y_root - y)
-	);
-	}
+		default:
+			break;
 	}
 
-*/
+}
 
+void hButtonRelease(XEvent *event) {
+	drag.button.subwindow = None;
 }
 
 //void motionInWindow(Window *window, XButtonEvent *button) {
 void hMotionNotify(XEvent *event) {	
-	/*
-		 motionInWindow(&event.xbutton.subwindow, &event.xbutton);
-		 logMessage(&statusWindow, "Motion Notify");
 
-		 if (*window) {
-		 drag.window = *window;
-		 drag.button = button;
-		 XGetWindowAttributes(display, *window, &drag.attributes);
-		 }
+		logMessage("Dragging");
+		if (drag.button.subwindow == None) { return; }
+		XMoveWindow(display,
+				drag.button.subwindow,
+				drag.attributes.x + (event -> xbutton.x_root - drag.button.x_root),
+				drag.attributes.y + (event -> xbutton.y_root - drag.button.y_root)
+				);
+}
 
-*/
+void hCreateNotify(XEvent *event) {
 }
 
 void hFocusIn(XEvent *event) {
@@ -245,8 +228,9 @@ void handleEvent() {
 	switch (event.type) {
 		case KeyPress:       hKeyPress(&event);       break;
 		case ButtonPress:    hButtonPress(&event);    break;
+		case ButtonRelease:  hButtonRelease(&event);  break;
 		case MotionNotify:   hMotionNotify(&event);   break;
-		case CreateNotify:   logMessage("Create Notify"); break;
+		case CreateNotify:   hCreateNotify(&event);   break;
 		case MapRequest:     hMapRequest(&event);     break; 
 		case FocusIn:        hFocusIn(&event);        break;
 		case FocusOut:       hFocusOut(&event);       break;
@@ -269,8 +253,9 @@ int main() {
 	//Create a Window and Setup Events for the Window
 	//Set Cursor for window only to XC_gumby
 	createStatusWindow();
-	setCursor(&statusWindow, 56);
+	setCursor(&statusWindow, 61);
 
+	//Main Event Loop
 	while (True) { handleEvent(); }
 
 	//If Event Loop Were to Break
