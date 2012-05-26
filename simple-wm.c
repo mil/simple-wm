@@ -16,7 +16,7 @@ typedef struct {
 	XButtonEvent       button;
 	XWindowAttributes  attributes;
 } PointerMotion;
-PointerMotion drag;
+PointerMotion origin;
 
 /* ---------------------------
  * Status Window Related
@@ -55,7 +55,7 @@ void logMessage(char message[]) {
  * ---------------------------------- */
 void setupEvents() {
 
-	drag.button.subwindow = None;
+	origin.button.subwindow = None;
 
 	XGrabButton(
 			//Display, Button, Modifiers
@@ -165,41 +165,71 @@ void hButtonPress(XEvent *event) {
 	//Clicking on the Root Window
 	if ((*event).xbutton.subwindow == None) { return; }
 
-	//Clicking on A Normal Window
-	switch (event -> xbutton.button) {
-		case 1:
-			logMessage("1st Button");
-			raiseWindow(&(event -> xbutton.subwindow));
+	logMessage("Clicking");
 
-			//Click to Move
-			XGetWindowAttributes(display, 
-					(*event).xbutton.subwindow, 
-					&(drag.attributes)
-					);
-			drag.button = (*event).xbutton;
-
-			break;
-
-		default:
-			break;
+	// Shift Click to Move -- store into drag struct
+	if (event -> xkey.state == ShiftMask) {
+		XGetWindowAttributes(display, 
+				(*event).xbutton.subwindow, 
+				&(origin.attributes)
+				);
+		origin.button = (*event).xbutton;
 	}
 
+		//Clicking on A Normal Window
+		switch (event -> xbutton.button) {
+			case 1:
+				logMessage("1st Button");
+				raiseWindow(&(event -> xbutton.subwindow));
+				break;
+			case 3:
+				logMessage("3rd");
+			default:
+				break;
+		}
 }
 
 void hButtonRelease(XEvent *event) {
-	drag.button.subwindow = None;
+	origin.button.subwindow = None;
 }
 
-//void motionInWindow(Window *window, XButtonEvent *button) {
 void hMotionNotify(XEvent *event) {	
 
-		logMessage("Dragging");
-		if (drag.button.subwindow == None) { return; }
-		XMoveWindow(display,
-				drag.button.subwindow,
-				drag.attributes.x + (event -> xbutton.x_root - drag.button.x_root),
-				drag.attributes.y + (event -> xbutton.y_root - drag.button.y_root)
-				);
+	if (origin.button.subwindow == None) { return; }
+	switch (origin.button.button) {
+		case 1:
+			XMoveWindow(
+					display,
+					origin.button.subwindow,
+					origin.attributes.x + (event -> xbutton.x_root - origin.button.x_root),
+					origin.attributes.y + (event -> xbutton.y_root - origin.button.y_root)
+					);
+			break;
+		case 3:
+			logMessage("Drag 3");
+			int xDifference = event -> xbutton.x_root - origin.button.x_root;
+			int yDifference = event -> xbutton.y_root - origin.button.y_root;
+
+			/* Data for XMoveResize if contracting/expanding normally */
+			int newX = origin.attributes.x;
+			int newY = origin.attributes.y;
+			int newWidth = origin.attributes.width + ((-1*xDifference) != origin.attributes.width ? xDifference : 1) ;
+			int newHeight = origin.attributes.height + ((-1*yDifference) != origin.attributes.height ? yDifference : 1);
+
+			/* Check if Drag is to the left or top of window, flip window */
+			if(newWidth < 1 ) {
+				newX     = newX + xDifference + origin.attributes.width;
+				newWidth = (xDifference * -1) - origin.attributes.width;
+			}
+			if (newHeight < 1) {
+				newY      = newY + yDifference + origin.attributes.height;
+				newHeight = (yDifference * -1) - origin.attributes.height;
+			}
+
+			XMoveResizeWindow(display, origin.button.subwindow,newX, newY, newWidth, newHeight);
+			break;
+	}
+
 }
 
 void hCreateNotify(XEvent *event) {
