@@ -207,25 +207,27 @@ void hMotionNotify(XEvent *event) {
 			break;
 		case 3:
 			logMessage("Drag 3");
+			/* Calculate Difference between current position original click */
 			int xDifference = event -> xbutton.x_root - origin.button.x_root;
 			int yDifference = event -> xbutton.y_root - origin.button.y_root;
 
 			/* Data for XMoveResize if contracting/expanding normally */
 			int newX = origin.attributes.x;
 			int newY = origin.attributes.y;
-			int newWidth = origin.attributes.width + ((-1*xDifference) != origin.attributes.width ? xDifference : 1) ;
-			int newHeight = origin.attributes.height + ((-1*yDifference) != origin.attributes.height ? yDifference : 1);
+			int newWidth = origin.attributes.width + xDifference;
+			int newHeight = origin.attributes.height + yDifference;
 
 			/* Check if Drag is to the left or top of window, flip window */
-			if(newWidth < 1 ) {
+			if (newWidth == 0) { newWidth = 1; } else if (newWidth < 1 ) {
 				newX     = newX + xDifference + origin.attributes.width;
 				newWidth = (xDifference * -1) - origin.attributes.width;
 			}
-			if (newHeight < 1) {
+			if (newHeight == 0) { newHeight = 1; } else if (newHeight < 1) {
 				newY      = newY + yDifference + origin.attributes.height;
 				newHeight = (yDifference * -1) - origin.attributes.height;
 			}
 
+			/* Fire to XMoveResizeWindow */
 			XMoveResizeWindow(display, origin.button.subwindow,newX, newY, newWidth, newHeight);
 			break;
 	}
