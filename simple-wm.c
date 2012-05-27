@@ -1,6 +1,7 @@
 // mies-wm
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 #include <X11/Xlib.h>
 #define NIL (0)
 
@@ -128,6 +129,13 @@ void hMapRequest(XEvent *event) {
 	XSelectInput(display, event -> xmaprequest.window, FocusChangeMask | KeyPressMask | ButtonPressMask );
 }
 
+void hConfigureRequest(XEvent *event) {
+
+}
+void hResizeRequest(XEvent *event) {
+}
+
+
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
 
@@ -163,17 +171,31 @@ void hKeyPress(XEvent *event) {
 
 void hButtonPress(XEvent *event) {
 	//Clicking on the Root Window
-	if ((*event).xbutton.subwindow == None) { return; }
+	if (event -> xbutton.subwindow == None) { return; }
 
 	logMessage("Clicking");
 
 	// Shift Click to Move -- store into drag struct
 	if (event -> xkey.state == ShiftMask) {
+		//Warp pointer to corner if resizing
+		if (event -> xbutton.button == 3) {
+			/*
+			XWindowAttributes windowAttributes;
+			XGetWindowAttributes(display, event -> xbutton.subwindow, &windowAttributes);
+			XWarpPointer(
+					display,
+					event -> xbutton.subwindow,
+					event -> xbutton.subwindow,
+					0, 0, 0, 0, windowAttributes.width, windowAttributes.height
+					);
+			*/
+		}
+
 		XGetWindowAttributes(display, 
-				(*event).xbutton.subwindow, 
+				event -> xbutton.subwindow, 
 				&(origin.attributes)
 				);
-		origin.button = (*event).xbutton;
+		origin.button = event -> xbutton;
 	}
 
 		//Clicking on A Normal Window
@@ -187,6 +209,11 @@ void hButtonPress(XEvent *event) {
 			default:
 				break;
 		}
+}
+
+int xError(XErrorEvent *e) {
+	fprintf(stderr, "XErrorEvent of Request Code: %d and Error Code of %d\n", e -> request_code, e -> error_code);
+	return 0;
 }
 
 void hButtonRelease(XEvent *event) {
@@ -258,16 +285,18 @@ void handleEvent() {
 	XNextEvent(display, &event);
 
 	switch (event.type) {
-		case KeyPress:       hKeyPress(&event);       break;
-		case ButtonPress:    hButtonPress(&event);    break;
-		case ButtonRelease:  hButtonRelease(&event);  break;
-		case MotionNotify:   hMotionNotify(&event);   break;
-		case CreateNotify:   hCreateNotify(&event);   break;
-		case MapRequest:     hMapRequest(&event);     break; 
-		case FocusIn:        hFocusIn(&event);        break;
-		case FocusOut:       hFocusOut(&event);       break;
-		case PropertyNotify: hPropertyNotify(&event); break;
-		default: break;
+		case KeyPress:          hKeyPress(&event);         break;
+		case ButtonPress:       hButtonPress(&event);      break;
+		case ButtonRelease:     hButtonRelease(&event);    break;
+		case MotionNotify:      hMotionNotify(&event);     break;
+		case CreateNotify:      hCreateNotify(&event);     break;
+		case MapRequest:        hMapRequest(&event);       break; 
+		case ConfigureRequest:  hConfigureRequest(&event); break;
+		case ResizeRequest:     hResizeRequest(&event);    break;
+		case FocusIn:           hFocusIn(&event);          break;
+		case FocusOut:          hFocusOut(&event);         break;
+		case PropertyNotify:    hPropertyNotify(&event);   break;
+		default:                                           break;
 	}
 }
 
@@ -286,6 +315,10 @@ int main() {
 	//Set Cursor for window only to XC_gumby
 	createStatusWindow();
 	setCursor(&statusWindow, 61);
+
+	//Setup Error Handling
+	XSetErrorHandler((XErrorHandler)(xError));
+
 
 	//Main Event Loop
 	while (True) { handleEvent(); }
