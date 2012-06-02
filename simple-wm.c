@@ -14,7 +14,7 @@ Cursor cursor;
 
 //PointerMotion Struct Contains Original Button Event and Original Attributes
 typedef struct {
-	XButtonEvent       button;
+	XButtonEvent       buttonEvent;
 	XWindowAttributes  attributes;
 } PointerMotion;
 PointerMotion origin;
@@ -56,7 +56,7 @@ void logMessage(char message[]) {
  * ---------------------------------- */
 void setupEvents() {
 
-	origin.button.subwindow = None;
+	origin.buttonEvent.subwindow = None;
 
 	XGrabButton(
 			//Display, Button, Modifiers
@@ -80,9 +80,11 @@ void setupEvents() {
 /* ---------------------------
  * Window Manipulation Related
  * --------------------------- */
-void applyBorder(Window *window) {
-	XSetWindowBorderWidth(display,*window,5);
-	XSetWindowBorder(display, *window, 5);
+void applyBorder(Window *window, long pixel) {
+
+	//Set Width and Color
+	XSetWindowBorderWidth(display, *window, 5);
+	XSetWindowBorder(display, *window, pixel);
 }
 
 void setCursor(Window *window, int cursor) {
@@ -105,6 +107,10 @@ void centerPointer(Window *window) {
 //Raises Window, Focuses, Makes Window the Active Window
 void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
+	applyBorder(window, WhitePixel(display, activeScreen));
+	XSelectInput(display, *window, PropertyChangeMask | FocusChangeMask);
+
+
 	activeWindow = *window;
 }
 
@@ -121,18 +127,25 @@ void hMapRequest(XEvent *event) {
 
 	//Window Fns: Raise, Border, Center Pointer, Setup Events
 	raiseWindow(&mapRequestWindow);
-	applyBorder(&mapRequestWindow);
+	applyBorder(&mapRequestWindow, BlackPixel(display, activeScreen));
 	centerPointer(&mapRequestWindow);
 
-	//applyBorder();
 	//centerPointer(window)
-	XSelectInput(display, event -> xmaprequest.window, FocusChangeMask | KeyPressMask | ButtonPressMask );
+	XSelectInput(
+			display, 
+			event -> xmaprequest.window, 
+			FocusChangeMask | KeyPressMask | ButtonPressMask 
+			);
 }
 
 void hConfigureRequest(XEvent *event) {
-
+	fprintf(stderr, "Configure Request");
 }
 void hResizeRequest(XEvent *event) {
+}
+
+void hClientMessage(XEvent *event) {
+	fprintf(stderr, "Client Message Recieved");
 }
 
 
@@ -180,35 +193,35 @@ void hButtonPress(XEvent *event) {
 		//Warp pointer to corner if resizing
 		if (event -> xbutton.button == 3) {
 			/*
-			XWindowAttributes windowAttributes;
-			XGetWindowAttributes(display, event -> xbutton.subwindow, &windowAttributes);
-			XWarpPointer(
-					display,
-					event -> xbutton.subwindow,
-					event -> xbutton.subwindow,
-					0, 0, 0, 0, windowAttributes.width, windowAttributes.height
-					);
-			*/
+				 XWindowAttributes windowAttributes;
+				 XGetWindowAttributes(display, event -> xbutton.subwindow, &windowAttributes);
+				 XWarpPointer(
+				 display,
+				 event -> xbutton.subwindow,
+				 event -> xbutton.subwindow,
+				 0, 0, 0, 0, windowAttributes.width, windowAttributes.height
+				 );
+				 */
 		}
 
 		XGetWindowAttributes(display, 
 				event -> xbutton.subwindow, 
 				&(origin.attributes)
 				);
-		origin.button = event -> xbutton;
+		origin.buttonEvent = event -> xbutton;
 	}
 
-		//Clicking on A Normal Window
-		switch (event -> xbutton.button) {
-			case 1:
-				logMessage("1st Button");
-				raiseWindow(&(event -> xbutton.subwindow));
-				break;
-			case 3:
-				logMessage("3rd");
-			default:
-				break;
-		}
+	//Clicking on A Normal Window
+	switch (event -> xbutton.button) {
+		case 1:
+			logMessage("1st Button");
+			raiseWindow(&(event -> xbutton.subwindow));
+			break;
+		case 3:
+			logMessage("3rd");
+		default:
+			break;
+	}
 }
 
 int xError(XErrorEvent *e) {
@@ -217,26 +230,26 @@ int xError(XErrorEvent *e) {
 }
 
 void hButtonRelease(XEvent *event) {
-	origin.button.subwindow = None;
+	origin.buttonEvent.subwindow = None;
 }
 
 void hMotionNotify(XEvent *event) {	
 
-	if (origin.button.subwindow == None) { return; }
-	switch (origin.button.button) {
+	if (origin.buttonEvent.subwindow == None) { return; }
+	switch (origin.buttonEvent.button) {
 		case 1:
 			XMoveWindow(
 					display,
-					origin.button.subwindow,
-					origin.attributes.x + (event -> xbutton.x_root - origin.button.x_root),
-					origin.attributes.y + (event -> xbutton.y_root - origin.button.y_root)
+					origin.buttonEvent.subwindow,
+					origin.attributes.x + (event -> xbutton.x_root - origin.buttonEvent.x_root),
+					origin.attributes.y + (event -> xbutton.y_root - origin.buttonEvent.y_root)
 					);
 			break;
 		case 3:
 			logMessage("Drag 3");
 			/* Calculate Difference between current position original click */
-			int xDifference = event -> xbutton.x_root - origin.button.x_root;
-			int yDifference = event -> xbutton.y_root - origin.button.y_root;
+			int xDifference = event -> xbutton.x_root - origin.buttonEvent.x_root;
+			int yDifference = event -> xbutton.y_root - origin.buttonEvent.y_root;
 
 			/* Data for XMoveResize if contracting/expanding normally */
 			int newX = origin.attributes.x;
@@ -255,7 +268,7 @@ void hMotionNotify(XEvent *event) {
 			}
 
 			/* Fire to XMoveResizeWindow */
-			XMoveResizeWindow(display, origin.button.subwindow,newX, newY, newWidth, newHeight);
+			XMoveResizeWindow(display, origin.buttonEvent.subwindow,newX, newY, newWidth, newHeight);
 			break;
 	}
 
@@ -265,14 +278,12 @@ void hCreateNotify(XEvent *event) {
 }
 
 void hFocusIn(XEvent *event) {
-	/*
-		 logMessage(&statusWindow, "Focus In");
-		 raiseWindow(&event.xfocus.window);
-		 */
+	//logMessage("Focus In");
 }
 
 void hFocusOut(XEvent *event) {
-	// logMessage(&statusWindow, "Focus Out");
+	logMessage("Focus Out");
+	applyBorder(&event -> xfocus.window, BlackPixel(display, activeScreen));
 }
 
 void hPropertyNotify(XEvent *event) {
@@ -293,6 +304,7 @@ void handleEvent() {
 		case MapRequest:        hMapRequest(&event);       break; 
 		case ConfigureRequest:  hConfigureRequest(&event); break;
 		case ResizeRequest:     hResizeRequest(&event);    break;
+		case ClientMessage:     hClientMessage(&event);    break;
 		case FocusIn:           hFocusIn(&event);          break;
 		case FocusOut:          hFocusOut(&event);         break;
 		case PropertyNotify:    hPropertyNotify(&event);   break;
