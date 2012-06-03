@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <X11/Xlib.h>
 #define NIL (0)
+#define MOVESTEP 5
 
 int screen;
 int	activeScreen;
@@ -111,7 +112,6 @@ void raiseWindow(Window *window){
 	XSelectInput(display, *window, PropertyChangeMask | FocusChangeMask);
 
 
-	activeWindow = *window;
 }
 
 
@@ -136,6 +136,8 @@ void hMapRequest(XEvent *event) {
 			event -> xmaprequest.window, 
 			FocusChangeMask | KeyPressMask | ButtonPressMask 
 			);
+
+
 }
 
 void hConfigureRequest(XEvent *event) {
@@ -159,23 +161,15 @@ void hKeyPress(XEvent *event) {
 
 	if (event -> xkey.state == ShiftMask) {
 		switch (event -> xkey.keycode) {
-			case 113:
-				moveX = -10; //left
-				break;
-			case 114:
-				moveX = 10; //right
-				break;
-			case 111:
-				moveY = -10; //up
-				break;
-			case 116:
-				moveY = 10; //down
-				break;
+			case 114: moveX =  MOVESTEP; break; //Right
+			case 116: moveY =  MOVESTEP; break; //Down
+			case 113: moveX = -1 * MOVESTEP; break; //Left
+			case 111: moveY = -1 * MOVESTEP; break; //Up
 		}
-		XGetWindowAttributes(display, activeWindow, &attributes);
+		XGetWindowAttributes(display, event -> xkey.window, &attributes);
 		XMoveWindow(
 				display,
-				activeWindow,
+				event -> xkey.window,
 				attributes.x + moveX,
 				attributes.y + moveY
 				);
@@ -278,6 +272,10 @@ void hCreateNotify(XEvent *event) {
 }
 
 void hFocusIn(XEvent *event) {
+	fprintf(stderr, "FOCUS IN");
+	if (event -> xfocus.window != NIL) {
+		activeWindow = event -> xfocus.window;
+	}
 	//logMessage("Focus In");
 }
 
@@ -322,11 +320,10 @@ int main() {
 	root = RootWindow(display, activeScreen);
 	activeScreen = DefaultScreen(display);
 	setupEvents(&root);
+	setCursor(&root, 56);
 
 	//Create a Window and Setup Events for the Window
-	//Set Cursor for window only to XC_gumby
 	createStatusWindow();
-	setCursor(&statusWindow, 61);
 
 	//Setup Error Handling
 	XSetErrorHandler((XErrorHandler)(xError));
