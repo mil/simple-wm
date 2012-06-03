@@ -109,7 +109,6 @@ void centerPointer(Window *window) {
 void raiseWindow(Window *window){
 	XRaiseWindow(display, *window);
 	applyBorder(window, WhitePixel(display, activeScreen));
-	XSelectInput(display, *window, PropertyChangeMask | FocusChangeMask);
 
 
 }
@@ -134,7 +133,7 @@ void hMapRequest(XEvent *event) {
 	XSelectInput(
 			display, 
 			event -> xmaprequest.window, 
-			FocusChangeMask | KeyPressMask | ButtonPressMask 
+			FocusChangeMask | KeyPressMask | ButtonPressMask | LeaveWindowMask
 			);
 
 
@@ -154,26 +153,27 @@ void hClientMessage(XEvent *event) {
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
 
-	if (activeWindow == NIL) { return; }
+	//Need an active Window and the Shift Mod
+	if (activeWindow == NIL || event -> xkey.state != ShiftMask) { return; }
 
-	XWindowAttributes attributes;
 	int moveX = 0, moveY = 0;
 
-	if (event -> xkey.state == ShiftMask) {
-		switch (event -> xkey.keycode) {
-			case 114: moveX =  MOVESTEP; break; //Right
-			case 116: moveY =  MOVESTEP; break; //Down
-			case 113: moveX = -1 * MOVESTEP; break; //Left
-			case 111: moveY = -1 * MOVESTEP; break; //Up
-		}
-		XGetWindowAttributes(display, event -> xkey.window, &attributes);
-		XMoveWindow(
-				display,
-				event -> xkey.window,
-				attributes.x + moveX,
-				attributes.y + moveY
-				);
+	switch (event -> xkey.keycode) {
+		case 114: moveX =  MOVESTEP; break; //Right
+		case 116: moveY =  MOVESTEP; break; //Down
+		case 113: moveX = -1 * MOVESTEP; break; //Left
+		case 111: moveY = -1 * MOVESTEP; break; //Up
 	}
+
+	XWindowAttributes attributes;
+	XGetWindowAttributes(display, event -> xkey.window, &attributes);
+
+	XMoveWindow(
+			display,
+			event -> xkey.window,
+			attributes.x + moveX,
+			attributes.y + moveY
+			);
 }
 
 void hButtonPress(XEvent *event) {
@@ -284,6 +284,11 @@ void hFocusOut(XEvent *event) {
 	applyBorder(&event -> xfocus.window, BlackPixel(display, activeScreen));
 }
 
+void hLeaveNotify(XEvent *event) {	
+	fprintf(stderr, "Leaving");
+	applyBorder(&event -> xcrossing.window, BlackPixel(display, activeScreen));
+}
+
 void hPropertyNotify(XEvent *event) {
 
 }
@@ -305,6 +310,7 @@ void handleEvent() {
 		case ClientMessage:     hClientMessage(&event);    break;
 		case FocusIn:           hFocusIn(&event);          break;
 		case FocusOut:          hFocusOut(&event);         break;
+		case LeaveNotify:       hLeaveNotify(&event);      break;
 		case PropertyNotify:    hPropertyNotify(&event);   break;
 		default:                                           break;
 	}
