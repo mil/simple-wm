@@ -123,6 +123,27 @@ void dumpWorkspace(int wn) {
 	}
 }
 
+int changeWorkspace(int wn) {
+	//Trying to change to the current workspace
+	if (currentWorkspace == wn) { return False; }
+
+
+	int a;
+	for (a = 0; a <= workspaces[currentWorkspace].lastElement; a++) {
+		XUnmapWindow(display, workspaces[currentWorkspace].windows[a]);
+	}
+
+
+	int b;
+	for (b = 0; b <= workspaces[wn].lastElement; b++) {
+		XMapWindow(display, workspaces[currentWorkspace].windows[b]);
+	}
+
+	currentWorkspace = wn;
+
+	return True;
+}
+
 /* ---------------------------
  * Event Handlers
  * --------------------------- */
@@ -175,21 +196,20 @@ void hKeyPress(XEvent *event) {
 	//int i;
 
 	switch (event -> xkey.keycode) {
-		case 114: moveX =  MOVESTEP; break; //Right
-		case 116: moveY =  MOVESTEP; break; //Down
-		case 113: moveX = -1 * MOVESTEP; break; //Left
-		case 39: moveY  = -1 * MOVESTEP; break; //Up
-		case 111:
-						 /*
-						for (i = 0; i < 20; i++) {
-							if (list[i] != NIL) {
-								fprintf(stderr, "List element exists %d\n", &list[i]);
-								applyBorder(&list[i], WhitePixel(display, activeScreen));
-							}
-						}
-						*/
+		case 114: moveX =  MOVESTEP;      break; //Right
+		case 116: moveY =  MOVESTEP;      break; //Down
+		case 113: moveX = -1 * MOVESTEP;  break; //Left
+		case 111: moveY  = -1 * MOVESTEP; break; //Up
 
+		//a
+		case 38:
+							changeWorkspace(0);
 							break;
+
+		//s
+		case 39:
+						changeWorkspace(1);
+						 break;
 	}
 
 	XWindowAttributes attributes;
@@ -246,7 +266,12 @@ void hButtonPress(XEvent *event) {
 }
 
 int xError(XErrorEvent *e) {
+	char err[500];
+
+	XGetErrorText(display, e -> request_code, err, 500);
+
 	fprintf(stderr, "XErrorEvent of Request Code: %d and Error Code of %d\n", e -> request_code, e -> error_code);
+	fprintf(stderr, "%s\n", err);
 	return 0;
 }
 
