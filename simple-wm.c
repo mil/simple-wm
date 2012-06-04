@@ -1,23 +1,19 @@
-// mies-wm
+/* Simple WM */
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <X11/Xlib.h>
-#define NIL (0)
-#define MOVESTEP 5
 
+#include "structs.h"
+#include "config.h"
+
+#define NIL (0)
 int screen;
 int	activeScreen;
 Display	*display;
 Window statusWindow, activeWindow, root; 
 XEvent event;
 Cursor cursor;
-
-//PointerMotion Struct Contains Original Button Event and Original Attributes
-typedef struct {
-	XButtonEvent       buttonEvent;
-	XWindowAttributes  attributes;
-} PointerMotion;
 PointerMotion origin;
 
 /* ---------------------------
