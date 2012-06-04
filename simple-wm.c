@@ -16,6 +16,10 @@ XEvent event;
 Cursor cursor;
 PointerMotion origin;
 
+Workspace workspaces[10];
+int currentWorkspace = 0;
+
+
 /* ---------------------------
  * Status Window Related
  * --------------------------- */
@@ -78,7 +82,6 @@ void setupEvents() {
  * Window Manipulation Related
  * --------------------------- */
 void applyBorder(Window *window, long pixel) {
-
 	//Set Width and Color
 	XSetWindowBorderWidth(display, *window, 5);
 	XSetWindowBorder(display, *window, pixel);
@@ -103,12 +106,22 @@ void centerPointer(Window *window) {
 }
 //Raises Window, Focuses, Makes Window the Active Window
 void raiseWindow(Window *window){
+
+	int i;
+	for (i = 0; i <= workspaces[0].lastElement; i++) {
+		applyBorder(&workspaces[0].windows[i], BlackPixel(display, activeScreen));
+	}
+
 	XRaiseWindow(display, *window);
 	applyBorder(window, WhitePixel(display, activeScreen));
-
-
 }
 
+void dumpWorkspace(int wn) {
+	int i;
+	for (i = 0; i <= workspaces[wn].lastElement; i++) {
+		fprintf(stderr, "Workspaces %d has Window %d\n", wn, &workspaces[wn].windows[i]);
+	}
+}
 
 /* ---------------------------
  * Event Handlers
@@ -120,10 +133,15 @@ void hMapRequest(XEvent *event) {
 	Window mapRequestWindow = event -> xmaprequest.window;
 	XMapWindow(display, mapRequestWindow);
 
+	workspaces[currentWorkspace].windows[workspaces[currentWorkspace].lastElement] = mapRequestWindow;
+	workspaces[currentWorkspace].lastElement++;
+
 	//Window Fns: Raise, Border, Center Pointer, Setup Events
 	raiseWindow(&mapRequestWindow);
 	applyBorder(&mapRequestWindow, BlackPixel(display, activeScreen));
 	centerPointer(&mapRequestWindow);
+
+	dumpWorkspace(0);
 
 	//centerPointer(window)
 	XSelectInput(
@@ -154,11 +172,24 @@ void hKeyPress(XEvent *event) {
 
 	int moveX = 0, moveY = 0;
 
+	//int i;
+
 	switch (event -> xkey.keycode) {
 		case 114: moveX =  MOVESTEP; break; //Right
 		case 116: moveY =  MOVESTEP; break; //Down
 		case 113: moveX = -1 * MOVESTEP; break; //Left
-		case 111: moveY = -1 * MOVESTEP; break; //Up
+		case 39: moveY  = -1 * MOVESTEP; break; //Up
+		case 111:
+						 /*
+						for (i = 0; i < 20; i++) {
+							if (list[i] != NIL) {
+								fprintf(stderr, "List element exists %d\n", &list[i]);
+								applyBorder(&list[i], WhitePixel(display, activeScreen));
+							}
+						}
+						*/
+
+							break;
 	}
 
 	XWindowAttributes attributes;
@@ -268,7 +299,7 @@ void hCreateNotify(XEvent *event) {
 }
 
 void hFocusIn(XEvent *event) {
-	fprintf(stderr, "FOCUS IN");
+	fprintf(stderr, "FOCUS IN\n");
 	if (event -> xfocus.window != NIL) {
 		activeWindow = event -> xfocus.window;
 	}
@@ -276,18 +307,18 @@ void hFocusIn(XEvent *event) {
 }
 
 void hFocusOut(XEvent *event) {
-	logMessage("Focus Out");
-	applyBorder(&event -> xfocus.window, BlackPixel(display, activeScreen));
+	logMessage("Focus Out\n");
+	//applyBorder(&event -> xfocus.window, BlackPixel(display, activeScreen));
 }
 
 void hLeaveNotify(XEvent *event) {	
-	fprintf(stderr, "Leaving");
-	applyBorder(&event -> xcrossing.window, BlackPixel(display, activeScreen));
+	//applyBorder(&event -> xcrossing.window, BlackPixel(display, activeScreen));
 }
 
 void hPropertyNotify(XEvent *event) {
 
 }
+
 
 
 void handleEvent() {
@@ -324,12 +355,13 @@ int main() {
 	setupEvents(&root);
 	setCursor(&root, 56);
 
+	workspaces[0].lastElement = 0;
+
 	//Create a Window and Setup Events for the Window
 	createStatusWindow();
 
 	//Setup Error Handling
 	XSetErrorHandler((XErrorHandler)(xError));
-
 
 	//Main Event Loop
 	while (True) { handleEvent(); }
