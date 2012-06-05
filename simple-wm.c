@@ -235,24 +235,23 @@ void hButtonPress(XEvent *event) {
 
 	if (event -> xkey.state == Mod4Mask) {
 		//Warp pointer to corner if resizing
-		if (event -> xbutton.button == 3) {
-
-				 XWindowAttributes windowAttributes;
-				 XGetWindowAttributes(display, event -> xbutton.subwindow, &windowAttributes);
-				 XWarpPointer(
-				 display,
-				 event -> xbutton.subwindow,
-				 event -> xbutton.subwindow,
-				 0, 0, 0, 0, windowAttributes.width, windowAttributes.height
-				 );
-		}
-
 		XGetWindowAttributes(display, 
 				event -> xbutton.subwindow, 
 				&(origin.attributes)
 				);
 		origin.buttonEvent = event -> xbutton;
-		
+
+
+		if (event -> xbutton.button == 3) {
+			//Store the origin X Cordinates so they may be subtracted
+			//MotionNotify won't see the resulting cords from XWarpPointer
+			origin.x = origin.attributes.width;
+			origin.y = origin.attributes.height;
+			XWarpPointer(
+					display, event -> xbutton.subwindow, event -> xbutton.subwindow,
+					0, 0, 0, 0, origin.attributes.width, origin.attributes.height
+					);
+		}
 
 	}
 
@@ -297,10 +296,9 @@ void hMotionNotify(XEvent *event) {
 			break;
 		case 3:
 			logMessage("Drag 3");
-
-			/* Calculate Difference between current position original click */
-			int xDifference = event -> xbutton.x_root - origin.buttonEvent.x_root;
-			int yDifference = event -> xbutton.y_root - origin.buttonEvent.y_root;
+			/* Calculate Difference between current position original click and offset from XWarpPointer */
+			int xDifference = event -> xbutton.x_root - origin.x - origin.attributes.x;
+			int yDifference = event -> xbutton.y_root - origin.y - origin.attributes.y;
 
 			/* Data for XMoveResize if contracting/expanding normally */
 			int newX = origin.attributes.x;

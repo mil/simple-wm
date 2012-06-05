@@ -3,6 +3,8 @@
 typedef struct {
 	XButtonEvent       buttonEvent;
 	XWindowAttributes  attributes;
+	int                x;
+	int                y;
 } PointerMotion;
 
 typedef struct {
