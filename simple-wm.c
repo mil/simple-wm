@@ -63,7 +63,7 @@ void setupEvents() {
 			//Display, Button, Modifiers
 			display, AnyButton, AnyModifier, 
 			//Window, OwnerE?, EventMask
-			root, True, ButtonPressMask | ButtonReleaseMask | PointerMotionMask, 
+			root, True, ButtonPressMask | ButtonReleaseMask | PointerMotionMask | OwnerGrabButtonMask, 
 			//PointerMode, KBMode, Confine, Cursor
 			GrabModeAsync, GrabModeAsync, None, None
 			);
@@ -114,6 +114,25 @@ void raiseWindow(Window *window){
 
 	XRaiseWindow(display, *window);
 	applyBorder(window, focusedColor);
+
+	//Focuses window
+	XSelectInput(
+			display, *window, 
+			FocusChangeMask | KeyPressMask | ButtonPressMask | LeaveWindowMask | OwnerGrabButtonMask
+			);
+	XGrabButton(
+			display, 
+			AnyButton,
+			AnyModifier,
+			*window,
+			False,
+			OwnerGrabButtonMask | ButtonPressMask,
+			GrabModeSync,
+			GrabModeSync,
+			None,
+			None);
+
+
 }
 
 void dumpWorkspace(int wn) {
@@ -161,15 +180,6 @@ void hMapRequest(XEvent *event) {
 	raiseWindow(&mapRequestWindow);
 	applyBorder(&mapRequestWindow, unfocusedColor); 
 	centerPointer(&mapRequestWindow);
-
-	//centerPointer(window)
-	XSelectInput(
-			display, 
-			event -> xmaprequest.window, 
-			FocusChangeMask | KeyPressMask | ButtonPressMask | LeaveWindowMask
-			);
-
-
 }
 
 void hConfigureRequest(XEvent *event) {
@@ -185,9 +195,8 @@ void hClientMessage(XEvent *event) {
 
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
-
 	//Need an active Window and the Win Mod
-	if (event -> xkey.state != 64) { return; }
+	if (event -> xkey.state != Mod4Mask) { return; }
 
 	int moveX = 0, moveY = 0;
 	switch (event -> xkey.keycode) {
@@ -196,16 +205,16 @@ void hKeyPress(XEvent *event) {
 		case 113: moveX = -1 * MOVESTEP;  break; //Left
 		case 111: moveY = -1 * MOVESTEP;  break; //Up
 
-		case 10: changeWorkspace(0); break; //a
-		case 11: changeWorkspace(1); break; //s
-		case 12: changeWorkspace(2); break; //a
-		case 13: changeWorkspace(3); break; //a
-		case 14: changeWorkspace(4); break; //a
-		case 15: changeWorkspace(5); break; //s
-		case 16: changeWorkspace(6); break; //s
-		case 17: changeWorkspace(7); break; //s
-		case 18: changeWorkspace(8); break; //s
-		case 19: changeWorkspace(9); break; //s
+		case 10: changeWorkspace(0); break;
+		case 11: changeWorkspace(1); break;
+		case 12: changeWorkspace(2); break;
+		case 13: changeWorkspace(3); break;
+		case 14: changeWorkspace(4); break;
+		case 15: changeWorkspace(5); break;
+		case 16: changeWorkspace(6); break;
+		case 17: changeWorkspace(7); break;
+		case 18: changeWorkspace(8); break;
+		case 19: changeWorkspace(9); break;
 	}
 
 	XWindowAttributes attributes;
@@ -224,11 +233,10 @@ void hButtonPress(XEvent *event) {
 	if (event -> xbutton.subwindow == None) { return; }
 	logMessage("Clicking");
 
-	// Shift Click to Move -- store into drag struct
-	if (event -> xkey.state == 64) {
+	if (event -> xkey.state == Mod4Mask) {
 		//Warp pointer to corner if resizing
 		if (event -> xbutton.button == 3) {
-			/*
+
 				 XWindowAttributes windowAttributes;
 				 XGetWindowAttributes(display, event -> xbutton.subwindow, &windowAttributes);
 				 XWarpPointer(
@@ -237,7 +245,6 @@ void hButtonPress(XEvent *event) {
 				 event -> xbutton.subwindow,
 				 0, 0, 0, 0, windowAttributes.width, windowAttributes.height
 				 );
-				 */
 		}
 
 		XGetWindowAttributes(display, 
@@ -245,6 +252,8 @@ void hButtonPress(XEvent *event) {
 				&(origin.attributes)
 				);
 		origin.buttonEvent = event -> xbutton;
+		
+
 	}
 
 	//Clicking on A Normal Window
@@ -255,6 +264,7 @@ void hButtonPress(XEvent *event) {
 			break;
 		case 3:
 			logMessage("3rd");
+
 		default:
 			break;
 	}
@@ -287,6 +297,7 @@ void hMotionNotify(XEvent *event) {
 			break;
 		case 3:
 			logMessage("Drag 3");
+
 			/* Calculate Difference between current position original click */
 			int xDifference = event -> xbutton.x_root - origin.buttonEvent.x_root;
 			int yDifference = event -> xbutton.y_root - origin.buttonEvent.y_root;
@@ -382,7 +393,6 @@ int main() {
 	activeScreen = DefaultScreen(display);
 	setupEvents(&root);
 	setCursor(&root, 56);
-
 	workspaces[0].lastElement = 0;
 
 	unfocusedColor = getColor(UNFOCUSEDCOLOR);
