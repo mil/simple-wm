@@ -186,11 +186,8 @@ void hClientMessage(XEvent *event) {
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
 
-	fprintf(stderr, "Got mod %d\n", event -> xkey.state);
-	if (event -> xkey.state == Mod2Mask) { }
-
-	//Need an active Window and the Shift Mod
-	if (event -> xkey.state != ShiftMask) { return; }
+	//Need an active Window and the Win Mod
+	if (event -> xkey.state != 64) { return; }
 
 	int moveX = 0, moveY = 0;
 	switch (event -> xkey.keycode) {
@@ -199,8 +196,16 @@ void hKeyPress(XEvent *event) {
 		case 113: moveX = -1 * MOVESTEP;  break; //Left
 		case 111: moveY = -1 * MOVESTEP;  break; //Up
 
-		case 38: changeWorkspace(0); break; //a
-		case 39: changeWorkspace(1); break; //s
+		case 10: changeWorkspace(0); break; //a
+		case 11: changeWorkspace(1); break; //s
+		case 12: changeWorkspace(2); break; //a
+		case 13: changeWorkspace(3); break; //a
+		case 14: changeWorkspace(4); break; //a
+		case 15: changeWorkspace(5); break; //s
+		case 16: changeWorkspace(6); break; //s
+		case 17: changeWorkspace(7); break; //s
+		case 18: changeWorkspace(8); break; //s
+		case 19: changeWorkspace(9); break; //s
 	}
 
 	XWindowAttributes attributes;
@@ -220,7 +225,7 @@ void hButtonPress(XEvent *event) {
 	logMessage("Clicking");
 
 	// Shift Click to Move -- store into drag struct
-	if (event -> xkey.state == ShiftMask) {
+	if (event -> xkey.state == 64) {
 		//Warp pointer to corner if resizing
 		if (event -> xbutton.button == 3) {
 			/*
