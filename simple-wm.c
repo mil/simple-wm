@@ -18,6 +18,7 @@ PointerMotion origin;
 
 Workspace workspaces[10];
 int currentWorkspace = 0;
+long focusedColor, unfocusedColor;
 
 
 /* ---------------------------
@@ -49,7 +50,6 @@ void logMessage(char message[]) {
 			message, strlen(message)
 			);
 }
-
 
 
 /* ----------------------------------
@@ -98,7 +98,7 @@ void centerPointer(Window *window) {
 	XWindowAttributes windowAttributes;
 	XGetWindowAttributes(display, *window, &windowAttributes);
 
-	int centerX = windowAttributes.width / 2,
+	int centerX = windowAttributes.width  / 2,
 			centerY = windowAttributes.height / 2;
 
 	//Warp to Center
@@ -109,11 +109,11 @@ void raiseWindow(Window *window){
 
 	int i;
 	for (i = 0; i <= workspaces[0].lastElement; i++) {
-		applyBorder(&workspaces[0].windows[i], BlackPixel(display, activeScreen));
+		applyBorder(&workspaces[0].windows[i], unfocusedColor);
 	}
 
 	XRaiseWindow(display, *window);
-	applyBorder(window, WhitePixel(display, activeScreen));
+	applyBorder(window, focusedColor);
 }
 
 void dumpWorkspace(int wn) {
@@ -199,17 +199,10 @@ void hKeyPress(XEvent *event) {
 		case 114: moveX =  MOVESTEP;      break; //Right
 		case 116: moveY =  MOVESTEP;      break; //Down
 		case 113: moveX = -1 * MOVESTEP;  break; //Left
-		case 111: moveY  = -1 * MOVESTEP; break; //Up
+		case 111: moveY = -1 * MOVESTEP;  break; //Up
 
-		//a
-		case 38:
-							changeWorkspace(0);
-							break;
-
-		//s
-		case 39:
-						changeWorkspace(1);
-						 break;
+		case 38: changeWorkspace(0); break; //a
+		case 39: changeWorkspace(1); break; //s
 	}
 
 	XWindowAttributes attributes;
@@ -226,7 +219,6 @@ void hKeyPress(XEvent *event) {
 void hButtonPress(XEvent *event) {
 	//Clicking on the Root Window
 	if (event -> xbutton.subwindow == None) { return; }
-
 	logMessage("Clicking");
 
 	// Shift Click to Move -- store into drag struct
@@ -269,7 +261,6 @@ int xError(XErrorEvent *e) {
 	char err[500];
 
 	XGetErrorText(display, e -> request_code, err, 500);
-
 	fprintf(stderr, "XErrorEvent of Request Code: %d and Error Code of %d\n", e -> request_code, e -> error_code);
 	fprintf(stderr, "%s\n", err);
 	return 0;
@@ -344,6 +335,15 @@ void hPropertyNotify(XEvent *event) {
 
 }
 
+//Thank you DWM ;)
+unsigned long getColor(const char *colstr) {
+	Colormap cmap = DefaultColormap(display, activeScreen);
+	XColor color;
+
+	if(!XAllocNamedColor(display, cmap, colstr, &color, &color)) { return 0; }
+	return color.pixel;
+}
+
 
 
 void handleEvent() {
@@ -381,6 +381,9 @@ int main() {
 	setCursor(&root, 56);
 
 	workspaces[0].lastElement = 0;
+
+	unfocusedColor = getColor(UNFOCUSEDCOLOR);
+	focusedColor   = getColor(FOCUSEDCOLOR);
 
 	//Create a Window and Setup Events for the Window
 	createStatusWindow();
