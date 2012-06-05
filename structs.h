@@ -6,7 +6,7 @@ typedef struct {
 } PointerMotion;
 
 typedef struct {
-	Window *active;
+	Window active;
 	Window windows[20];
 	int lastElement;
 } Workspace;

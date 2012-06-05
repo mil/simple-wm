@@ -11,7 +11,7 @@
 int screen;
 int	activeScreen;
 Display	*display;
-Window statusWindow, activeWindow, root; 
+Window statusWindow, root; 
 XEvent event;
 Cursor cursor;
 PointerMotion origin;
@@ -133,13 +133,13 @@ int changeWorkspace(int wn) {
 		XUnmapWindow(display, workspaces[currentWorkspace].windows[a]);
 	}
 
+	currentWorkspace = wn;
 
 	int b;
 	for (b = 0; b <= workspaces[wn].lastElement; b++) {
 		XMapWindow(display, workspaces[currentWorkspace].windows[b]);
 	}
 
-	currentWorkspace = wn;
 
 	return True;
 }
@@ -159,10 +159,8 @@ void hMapRequest(XEvent *event) {
 
 	//Window Fns: Raise, Border, Center Pointer, Setup Events
 	raiseWindow(&mapRequestWindow);
-	applyBorder(&mapRequestWindow, BlackPixel(display, activeScreen));
+	applyBorder(&mapRequestWindow, unfocusedColor); 
 	centerPointer(&mapRequestWindow);
-
-	dumpWorkspace(0);
 
 	//centerPointer(window)
 	XSelectInput(
@@ -188,13 +186,13 @@ void hClientMessage(XEvent *event) {
 //Handles Keypress, takes in modifier and keycode
 void hKeyPress(XEvent *event) {
 
+	fprintf(stderr, "Got mod %d\n", event -> xkey.state);
+	if (event -> xkey.state == Mod2Mask) { }
+
 	//Need an active Window and the Shift Mod
-	if (activeWindow == NIL || event -> xkey.state != ShiftMask) { return; }
+	if (event -> xkey.state != ShiftMask) { return; }
 
 	int moveX = 0, moveY = 0;
-
-	//int i;
-
 	switch (event -> xkey.keycode) {
 		case 114: moveX =  MOVESTEP;      break; //Right
 		case 116: moveY =  MOVESTEP;      break; //Down
@@ -206,11 +204,11 @@ void hKeyPress(XEvent *event) {
 	}
 
 	XWindowAttributes attributes;
-	XGetWindowAttributes(display, event -> xkey.window, &attributes);
+	XGetWindowAttributes(display, workspaces[currentWorkspace].active, &attributes);
 
 	XMoveWindow(
 			display,
-			event -> xkey.window,
+			workspaces[currentWorkspace].active,
 			attributes.x + moveX,
 			attributes.y + moveY
 			);
@@ -317,7 +315,7 @@ void hCreateNotify(XEvent *event) {
 void hFocusIn(XEvent *event) {
 	fprintf(stderr, "FOCUS IN\n");
 	if (event -> xfocus.window != NIL) {
-		activeWindow = event -> xfocus.window;
+		workspaces[currentWorkspace].active = event -> xfocus.window;
 	}
 	//logMessage("Focus In");
 }
