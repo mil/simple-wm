@@ -56,7 +56,6 @@ void logMessage(char message[]) {
  * Window Manipulation Initializaiton 
  * ---------------------------------- */
 void setupEvents() {
-
 	origin.buttonEvent.subwindow = None;
 
 	XGrabButton(
@@ -106,7 +105,6 @@ void centerPointer(Window *window) {
 }
 //Raises Window, Focuses, Makes Window the Active Window
 void raiseWindow(Window *window){
-
 	int i;
 	for (i = 0; i <= workspaces[0].lastElement; i++) {
 		applyBorder(&workspaces[0].windows[i], unfocusedColor);
@@ -131,8 +129,6 @@ void raiseWindow(Window *window){
 			GrabModeSync,
 			None,
 			None);
-
-
 }
 
 void dumpWorkspace(int wn) {
@@ -142,24 +138,18 @@ void dumpWorkspace(int wn) {
 	}
 }
 
-int changeWorkspace(int wn) {
+int changeWorkspace(int workspace) {
 	//Trying to change to the current workspace
-	if (currentWorkspace == wn) { return False; }
+	if (workspace == currentWorkspace) { return False; }
 
-
-	int a;
-	for (a = 0; a <= workspaces[currentWorkspace].lastElement; a++) {
-		XUnmapWindow(display, workspaces[currentWorkspace].windows[a]);
+	int wksp;
+	for (wksp = 0; wksp <= workspaces[workspace].lastElement; wksp++) {
+		XMapWindow(display, workspaces[workspace].windows[wksp]);
 	}
-
-	currentWorkspace = wn;
-
-	int b;
-	for (b = 0; b <= workspaces[wn].lastElement; b++) {
-		XMapWindow(display, workspaces[currentWorkspace].windows[b]);
+	for (wksp = 0; wksp <= workspaces[currentWorkspace].lastElement; wksp++) {
+		XUnmapWindow(display, workspaces[currentWorkspace].windows[wksp]);
 	}
-
-
+	currentWorkspace = workspace;
 	return True;
 }
 
@@ -200,8 +190,8 @@ void hKeyPress(XEvent *event) {
 
 	int moveX = 0, moveY = 0;
 	switch (event -> xkey.keycode) {
-		case 114: moveX =  MOVESTEP;      break; //Right
-		case 116: moveY =  MOVESTEP;      break; //Down
+		case 114: moveX = MOVESTEP;       break; //Right
+		case 116: moveY = MOVESTEP;       break; //Down
 		case 113: moveX = -1 * MOVESTEP;  break; //Left
 		case 111: moveY = -1 * MOVESTEP;  break; //Up
 
