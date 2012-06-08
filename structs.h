@@ -17,7 +17,5 @@ struct Client {
 
 typedef struct {
 	Window active;
-	Window windows[20];
 	Client *last;
-	int lastElement;
 } Workspace;

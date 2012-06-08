@@ -106,10 +106,11 @@ void centerPointer(Window *window) {
 }
 //Raises Window, Focuses, Makes Window the Active Window
 void raiseWindow(Window *window){
-	int i;
-	for (i = 0; i <= workspaces[0].lastElement; i++) {
-		applyBorder(&workspaces[0].windows[i], unfocusedColor);
+	Client *client;
+	for (client=workspaces[currentWorkspace].last; client; client = client->previous) {
+			applyBorder(&(client -> window), unfocusedColor);
 	}
+
 
 	XRaiseWindow(display, *window);
 	applyBorder(window, focusedColor);
@@ -133,29 +134,28 @@ void raiseWindow(Window *window){
 }
 
 void dumpWorkspace(int wn) {
-	int run = 1;
+	Client *client;
 
-	Client *cp;
-
-	for (cp=workspaces[wn].last; cp; cp = cp -> previous) {
-			fprintf(stderr, "Client pointer %d\n", cp);
+	for (client=workspaces[wn].last; client; client = client->previous) {
+			fprintf(stderr, "Client pointer %d\n", client);
 	}
-
-
 }
 
 int changeWorkspace(int workspace) {
+
 	//Trying to change to the current workspace
 	if (workspace == currentWorkspace) { return False; }
 	dumpWorkspace(workspace);
 
-	int wksp;
-	for (wksp = 0; wksp <= workspaces[workspace].lastElement; wksp++) {
-		XMapWindow(display, workspaces[workspace].windows[wksp]);
+	Client *client;
+	for (client=workspaces[workspace].last; client; client = client -> previous) {
+			XMapWindow(display, client -> window);
 	}
-	for (wksp = 0; wksp <= workspaces[currentWorkspace].lastElement; wksp++) {
-		XUnmapWindow(display, workspaces[currentWorkspace].windows[wksp]);
+
+	for (client=workspaces[currentWorkspace].last; client; client = client -> previous) {
+			XUnmapWindow(display, client -> window);
 	}
+
 	currentWorkspace = workspace;
 	return True;
 }
@@ -178,10 +178,6 @@ void hMapRequest(XEvent *event) {
 
 	//Map
 	XMapWindow(display, newClient -> window);
-
-	workspaces[currentWorkspace].windows[workspaces[currentWorkspace].lastElement] = newClient -> window;
-	workspaces[currentWorkspace].lastElement++;
-
 
 	//Window Fns: Raise, Border, Center Pointer, Setup Events
 	raiseWindow  (&(newClient -> window) );
@@ -400,7 +396,6 @@ int main() {
 	activeScreen = DefaultScreen(display);
 	setupEvents(&root);
 	setCursor(&root, 56);
-	workspaces[0].lastElement = 0;
 
 	unfocusedColor = getColor(UNFOCUSEDCOLOR);
 	focusedColor   = getColor(FOCUSEDCOLOR);
