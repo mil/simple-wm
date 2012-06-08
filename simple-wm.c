@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <X11/Xlib.h>
 
 #include "structs.h"
@@ -46,7 +47,7 @@ void logMessage(char message[]) {
 			display,
 			statusWindow,
 			DefaultGC(display, activeScreen),
-			15, 15,
+			16, 15,
 			message, strlen(message)
 			);
 }
@@ -132,15 +133,21 @@ void raiseWindow(Window *window){
 }
 
 void dumpWorkspace(int wn) {
-	int i;
-	for (i = 0; i <= workspaces[wn].lastElement; i++) {
-		fprintf(stderr, "Workspaces %d has Window %d\n", wn, &workspaces[wn].windows[i]);
+	int run = 1;
+
+	Client *cp;
+
+	for (cp=workspaces[wn].last; cp; cp = cp -> previous) {
+			fprintf(stderr, "Client pointer %d\n", cp);
 	}
+
+
 }
 
 int changeWorkspace(int workspace) {
 	//Trying to change to the current workspace
 	if (workspace == currentWorkspace) { return False; }
+	dumpWorkspace(workspace);
 
 	int wksp;
 	for (wksp = 0; wksp <= workspaces[workspace].lastElement; wksp++) {
@@ -158,18 +165,28 @@ int changeWorkspace(int workspace) {
  * --------------------------- */
 void hMapRequest(XEvent *event) {
 	logMessage("Map Request");
+	fprintf(stderr, "Mapping request %d\n", event -> xmaprequest.serial);
 
-	//Map the Window
-	Window mapRequestWindow = event -> xmaprequest.window;
-	XMapWindow(display, mapRequestWindow);
+	//Create Pointer to new Client struct and put window inside
+	//Set the Client's previous pointer to the last client added to workspace
+	//Now set the workspace's last client pointer to the new client!
+	Client *newClient;
+	newClient = malloc(sizeof(Client));
+	newClient -> window = event -> xmaprequest.window;
+	newClient -> previous = workspaces[currentWorkspace].last;
+	workspaces[currentWorkspace].last = newClient;
 
-	workspaces[currentWorkspace].windows[workspaces[currentWorkspace].lastElement] = mapRequestWindow;
+	//Map
+	XMapWindow(display, newClient -> window);
+
+	workspaces[currentWorkspace].windows[workspaces[currentWorkspace].lastElement] = newClient -> window;
 	workspaces[currentWorkspace].lastElement++;
 
+
 	//Window Fns: Raise, Border, Center Pointer, Setup Events
-	raiseWindow(&mapRequestWindow);
-	applyBorder(&mapRequestWindow, unfocusedColor); 
-	centerPointer(&mapRequestWindow);
+	raiseWindow  (&(newClient -> window) );
+	applyBorder  (&(newClient -> window), unfocusedColor); 
+	centerPointer(&(newClient -> window) );
 }
 
 void hConfigureRequest(XEvent *event) {
@@ -375,6 +392,8 @@ int main() {
 	//Open Display and Assert
 	display = XOpenDisplay(NIL);
 	assert(display);
+
+	memset(&workspaces, 0x00, sizeof(Workspace)*10);
 
 	//Setup the Root Window, Active Screen, and Events
 	root = RootWindow(display, activeScreen);
